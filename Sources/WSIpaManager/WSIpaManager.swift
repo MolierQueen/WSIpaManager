@@ -12,9 +12,8 @@ class wsipamanager: ParsableCommand {
             subcommands: [Search.self, Login.self, Download.self])
     
      public func run() {
-         print("主命令执行完毕...")
          if CommandLine.arguments.count <= 1 {
-             print("❌ 缺少命令")
+             CommonMethod().showErrorMessage(text: "缺少命令")
              return
          }
     }

@@ -5,9 +5,8 @@
 //  Created by 柴犬的Mini on 2023/2/12.
 //
 import ArgumentParser
-
-
- 
+import Foundation
+import Alamofire
 
 class Search: ParsableCommand {
     required init() {
@@ -19,18 +18,53 @@ class Search: ParsableCommand {
     @OptionGroup
     var options: CommonMethod
     
-    @Option(name: [.short, .customLong("trackid")], help: "输入app在applestore上的id（网址后面的id 必传）")
+    @Option(name: [.short, .customLong("trackid")], help: "输入app在applestore上的id")
     var trackID: String = ""
     
     @Option(name: [.short, .customLong("country")], help: "输入app在applestore上的国家")
-    var country: String = ""
+    var country: String = "CN"
+    
+    @Option(name: [.short], help: "输入app的名字")
+    var name: String = ""
+    
+    @Option(name: [.short], help: "结果条数限制")
+    var limit: String = "1"
+
 
      func run() {
-         searchAppWith(trackID: trackID, country:country )
-         print("搜索")
+         
+//         print("请输入字符串：")
+//         let valueOne = readLine();
+//         print("aaaa\(String(describing: valueOne))")
+         searchAppRequest()
     }
     
-    func searchAppWith(trackID:String, country:String) {
-        print("搜索 \(trackID)  国家\(country)")
+    func searchAppRequest() -> Void {
+        var urlStr = "https://"+appstoreDomain+"/"+searchApi+"?"+"media=media&entity=software"+"&country="+country+"&limit="+limit+"&term="+name
+        urlStr = urlStr.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let finaURL = URL(string: urlStr)
+        print("开始搜索 url == \(urlStr)")
+        self.request(url: finaURL!)
     }
+    
+    
+    //    请求搜索接口
+    func request(url:URL)   {
+        
+        let session: URLSession = URLSession.shared
+        var request: URLRequest = URLRequest(url: url)
+        request.httpMethod = GET_REQUEST
+        let task = session.dataTask(with: request) { resultData, rsp, error in
+            if (error != nil) {
+                CommonMethod().showErrorMessage(text: "请求出错 \(String(describing: error))")
+            } else {
+                let dict = CommonMethod().paraData(data: resultData!)
+                CommonMethod().showSuccessMessage(text: "请求成功 ✅ \(String(describing: dict))")
+            }
+            semaphore_search.signal()
+        }
+        task.resume()
+        semaphore_search.wait()
+    }
+
 }
