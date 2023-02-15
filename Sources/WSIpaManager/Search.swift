@@ -25,7 +25,7 @@ class Search: ParsableCommand {
     var country: String = "CN"
     
     @Option(name: [.short], help: "输入app的名字")
-    var name: String = ""
+    var name: String = "微信"
     
     @Option(name: [.short], help: "结果条数限制")
     var limit: String = "1"
@@ -43,7 +43,9 @@ class Search: ParsableCommand {
         var urlStr = "https://"+appstoreDomain+"/"+searchApi+"?"+"media=media&entity=software"+"&country="+country+"&limit="+limit+"&term="+name
         urlStr = urlStr.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let finaURL = URL(string: urlStr)
-        print("开始搜索 url == \(urlStr)")
+//        print("开始搜索 url == \(urlStr)")
+        print("开始在Appstore上搜索\(name)...")
+
         self.request(url: finaURL!)
     }
     
@@ -59,7 +61,21 @@ class Search: ParsableCommand {
                 CommonMethod().showErrorMessage(text: "请求出错 \(String(describing: error))")
             } else {
                 let dict = CommonMethod().paraData(data: resultData!)
-                CommonMethod().showSuccessMessage(text: "请求成功 ✅ \(String(describing: dict))")
+                let resultArr : Array = dict["results"] as? Array<Any> ?? []
+                if resultArr.count == 1 {
+                    let finalResult : Dictionary = resultArr.first as! Dictionary<String, Any>
+                    let bundleID = finalResult["bundleId"] ?? ""
+                    let trackID = finalResult["trackId"] ?? ""
+                    let version = finalResult["version"] ?? ""
+                    let appstoreURL = finalResult["trackViewUrl"] ?? ""
+                    CommonMethod().showSuccessMessage(text: "搜索完成")
+                    print("bundle = \(bundleID)")
+                    print("trackID = \(trackID)")
+                    print("版本号 = \(version)")
+                    print("商店链接 = \(appstoreURL)")
+                } else {
+                    CommonMethod().showErrorMessage(text: "未找到相关产品")
+                }
             }
             semaphore_search.signal()
         }
