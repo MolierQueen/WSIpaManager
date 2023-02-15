@@ -10,17 +10,25 @@ let GET_REQUEST = "GET"
 let POST_REQUEST = "POST"
 
 let appstoreDomain = "itunes.apple.com"
-let appstoreDomainForDownloadAndLogin = "p71-buy.itunes.apple.com"
+let appstoreDomainForLogin = "p71-buy.itunes.apple.com"
+let appstoreDomainForDownload = "p25-buy.itunes.apple.com"
 
 let searchApi = "search"
 let loginApi = "WebObjects/MZFinance.woa/wa/authenticate"
+let downloadApi = "WebObjects/MZFinance.woa/wa/volumeStoreDownloadProduct"
+
 let semaphore_search = DispatchSemaphore(value: 0)
 let semaphore_login = DispatchSemaphore(value: 0)
 let semaphore_loginAuthCode = DispatchSemaphore(value: 0)
+let semaphore_download = DispatchSemaphore(value: 0)
 
 let need2authCode = "MZFinance.BadLogin.Configurator_message"
+var xmlDic = [String:Any]()
+
+
 //公共参数
 class CommonMethod: ParsableArguments {
+    
     required init() {
     }
     @Option(name: [.customShort("x")], help: "这是一个公共参数")
@@ -92,6 +100,18 @@ class CommonMethod: ParsableArguments {
         return dict as! Dictionary<String, Any>
     }
     
+    func needSave(elements:String, needSave:String) -> Void {
+        if xmlDic[needSave] as? String == "placeholder" {
+            xmlDic[needSave] = elements
+        }
+        if elements == needSave {
+            xmlDic[needSave] = "placeholder"
+        }
+    }
+    
+    func getXmlDic() -> [String:Any] {
+        return xmlDic
+    }
     
     //    展示错误信息
     public func showErrorMessage(text:String) -> Void {
