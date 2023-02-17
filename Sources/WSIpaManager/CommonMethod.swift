@@ -25,7 +25,7 @@ let semaphore_download = DispatchSemaphore(value: 0)
 let need2authCode = "MZFinance.BadLogin.Configurator_message"
 var xmlDic = [String:Any]()
 
-
+let EMPTY_VALUE = "placeholder"
 //公共参数
 class CommonMethod: ParsableArguments {
     
@@ -101,11 +101,11 @@ class CommonMethod: ParsableArguments {
     }
     
     func needSave(elements:String, needSave:String) -> Void {
-        if xmlDic[needSave] as? String == "placeholder" {
+        if xmlDic[needSave] as? String == EMPTY_VALUE {
             xmlDic[needSave] = elements
         }
         if elements == needSave {
-            xmlDic[needSave] = "placeholder"
+            xmlDic[needSave] = EMPTY_VALUE
         }
     }
     

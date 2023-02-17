@@ -11,6 +11,7 @@ let package = Package(
         .package(url: "https://github.com/johnsundell/files.git", from: "4.2.0"),
         .package(url: "https://github.com/Alamofire/Alamofire.git", from: "5.6.4"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.2.0"),
+        .package(url: "https://github.com/qiuzhifei/swift-commands", from: "0.6.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -21,7 +22,15 @@ let package = Package(
                 .product(name: "Files", package: "files"),
                 .product(name: "Alamofire", package: "alamofire"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            ]),
+                .product(name: "Commands", package: "swift-commands"),
+            ],
+            resources:[
+//                .copy("downloadmanager"),
+                .process("downloadmanager"),
+                
+                ]
+        ),
+        
         
         
         

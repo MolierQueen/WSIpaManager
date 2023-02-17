@@ -6,6 +6,9 @@
 //
 import ArgumentParser
 import Foundation
+import Commands
+import Alamofire
+import Files
 class Download: NSObject, ParsableCommand, XMLParserDelegate {
     required override init() {
     }
@@ -15,12 +18,18 @@ class Download: NSObject, ParsableCommand, XMLParserDelegate {
     var commonParas: CommonMethod
     
     @Option(name: [.short, .customLong("trackid")], help: "输入app在applestore上的id")
-    var trackID: String = ""
-    var needSaveURL = false
-
+    var trackID: String = "414478124"
+    
+    @Option(name: [.short, .customLong("bundle")], help: "输入app在applestore上的bundleID")
+    //    var bundle: String = "com.tencent.xin"
+    var bundle: String = "com.tencent.QQKSong"
+    
     
     func run() {
-
+        getDownloadUrl()
+    }
+    
+    func getDownloadUrl() -> Void {
         var urlStr = "https://"+appstoreDomainForDownload+"/"+downloadApi+"?"+"guid=\(String(describing: CommonMethod().guid()))"
         urlStr = urlStr.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let finaURL = URL(string: urlStr)
@@ -28,7 +37,7 @@ class Download: NSObject, ParsableCommand, XMLParserDelegate {
         var paraDic = [String:String]()
         paraDic["creditDisplay"] = ""
         paraDic["guid"] = CommonMethod().guid()
-        paraDic["salableAdamId"] = "414478124"
+        paraDic["salableAdamId"] = trackID
         
         var paraData:Data = Data()
         do {
@@ -36,12 +45,12 @@ class Download: NSObject, ParsableCommand, XMLParserDelegate {
         } catch {
             print(error)
         }
-            
+        
         let session: URLSession = URLSession.shared
         var request: URLRequest = URLRequest(url: finaURL!)
         request.httpMethod = "POST"
         request.httpBody = paraData
-         
+        
         request.setValue("Configurator/2.0 (Macintosh; OS X 10.12.6; 16G29) AppleWebKit/2603.3.8", forHTTPHeaderField: "User-Agent")
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         
@@ -51,35 +60,36 @@ class Download: NSObject, ParsableCommand, XMLParserDelegate {
         request.setValue(dsid, forHTTPHeaderField: "X-Dsid")
         request.setValue(dsid, forHTTPHeaderField: "iCloud-DSID")
         let semaphore_MyDown = DispatchSemaphore(value: 0)
-
+        
         let task = session.dataTask(with: request as URLRequest) { data, rsp, err in
             if err != nil {
                 CommonMethod().showErrorMessage(text: "请求失败\(String(describing: err))")
             } else {
-
+                
 //                let string:String! = String.init(data: data!, encoding: .utf8)
                 let parser = XMLParser(data: data!)
                 //设置delegate
                 parser.delegate = self
                 //开始解析
                 parser.parse()
-//                print("++我的解析字典==\(CommonMethod().getXmlDic())")
-                let url = CommonMethod().getXmlDic()["URL"] ?? "placeholder"
-                if url as! String == "placeholder" {
+                //                print("++我的解析字典==\(CommonMethod().getXmlDic())")
+                let url = CommonMethod().getXmlDic()["URL"] ?? EMPTY_VALUE
+                if url as! String == EMPTY_VALUE {
                     CommonMethod().showErrorMessage(text: "下载失败 没有获取到下载链接")
                 } else {
                     UserDefaults.standard.set(url, forKey: "downloadurl")
                     UserDefaults.standard.synchronize()
                     CommonMethod().showSuccessMessage(text: "获取下载链接为：\(url) 准备开始下载")
+                    self.downloadipaWith(urlStr: "download","-b", self.bundle)
+                    
                 }
-//                CommonMethod().showSuccessMessage(text: "请求成功 ✅元数据----  \(String(describing: string))")
+                //                CommonMethod().showSuccessMessage(text: "请求成功 ✅元数据----  \(String(describing: string))")
             }
-    
+            
             semaphore_MyDown.signal()
         }
         task.resume()
         semaphore_MyDown.wait()
-
     }
     
     // 遇到字符串时调用
@@ -89,20 +99,36 @@ class Download: NSObject, ParsableCommand, XMLParserDelegate {
         CommonMethod().needSave(elements: data, needSave: "URL")
         CommonMethod().needSave(elements: data, needSave: "sinf")
         CommonMethod().needSave(elements: data, needSave: "metadata")
+        CommonMethod().needSave(elements: data, needSave: "bundleShortVersionString")
+        CommonMethod().needSave(elements: data, needSave: "artistName")
+    }
+    
+    
+    func downloadipaWith(urlStr:String...) -> Void {
+        print("开始下载 bundle = \(urlStr)")
+        
+        //                for i in 0..<10 {
+        //                    Thread.sleep(forTimeInterval: 1)
+        //                    let x = 0
+        //                    let y = 1
+        //                    //            打印进度
+        //                    print( "\u{1B}[1A\u{1B}[KDownloaded:我是\(i) ")
+        //                    fflush(__stdoutp)
+        //                }
+        
+        let bundle = Bundle.module
+        let path = bundle.path(forResource: "downloadmanager", ofType: "")
+        let task = Process()
+        //            task.launchPath = "/usr/local/bin/WSIpamanager"
+        task.launchPath = path
+        task.arguments = urlStr
+        task.launch()
+        task.waitUntilExit()
     }
     
     
     
-//    func downloadipaWith(urlStr:String) -> Void {
-//        guard let taskUrl = URL(string: urlStr) else { return }
-//        
-//        let request = URLRequest(url: taskUrl)
-//        let session = URLSession(configuration: .default)
-//        session.downloadTask(with: request) { [weak self] tempUrl, response, error in
-//            guard let self = self, let tempUrl = tempUrl, error == nil else {
-//                return
-//            }
-//        }.resume()
-//    }
+    
+   
     
 }

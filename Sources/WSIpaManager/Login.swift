@@ -26,7 +26,6 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
     
     func run() {
         loginRequest(authCod: "")
-//        Thread.sleep(forTimeInterval: 5000)
     }
     
     func loginRequest(authCod:String) -> Void {
@@ -129,18 +128,19 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
                     let cookie:String? = response.headers["Set-Cookie"]
                     UserDefaults.standard.set(cookie, forKey: "cookie")
                     UserDefaults.standard.synchronize()
-                    let dsid = CommonMethod().getXmlDic()["dsid"] ?? "placeholder"
-                    if dsid as! String == "placeholder" {
+                    let dsid = CommonMethod().getXmlDic()["dsid"] ?? EMPTY_VALUE
+                    if dsid as! String == EMPTY_VALUE {
                         CommonMethod().showErrorMessage(text: "登录失败 没有获取到 dsid")
                     } else {
                         UserDefaults.standard.set(dsid, forKey: "dsid")
                         UserDefaults.standard.synchronize()
-                        let dsid = CommonMethod().getXmlDic()["dsid"] ?? "placeholder"
+                        let dsid = CommonMethod().getXmlDic()["dsid"] ?? EMPTY_VALUE
 
                         
                         let firstName = CommonMethod().getXmlDic()["firstName"] ?? ""
                         let lastName = CommonMethod().getXmlDic()["lastName"] ?? ""
                         let appleId = CommonMethod().getXmlDic()["appleId"] ?? ""
+                        self.loginWith(command:"auth","login","-e", self.userName, "-p", self.passWord)
                         CommonMethod().showSuccessMessage(text: "登录成功\n授权ID = \(dsid)\nappleid = \(appleId)\nfirstName = \(firstName)\nlastName = \(lastName)")
 
 //                        CommonMethod().showSuccessMessage(text: "登录成功元数据----  \(String(describing: string))  dsid = \(dsid)")
@@ -175,6 +175,28 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
 //        if string == "dsid" {
 //            self.needSaveID = true
 //        }
+    }
+    
+    
+    func loginWith(command:String...) -> Void {
+        
+        //                for i in 0..<10 {
+        //                    Thread.sleep(forTimeInterval: 1)
+        //                    let x = 0
+        //                    let y = 1
+        //                    //            打印进度
+        //                    print( "\u{1B}[1A\u{1B}[KDownloaded:我是\(i) ")
+        //                    fflush(__stdoutp)
+        //                }
+        
+        let bundle = Bundle.module
+        let path = bundle.path(forResource: "downloadmanager", ofType: "")
+        let task = Process()
+        //            task.launchPath = "/usr/local/bin/WSIpamanager"
+        task.launchPath = path
+        task.arguments = command
+        task.launch()
+        task.waitUntilExit()
     }
     
     
