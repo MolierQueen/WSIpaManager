@@ -27,6 +27,7 @@ class Download: NSObject, ParsableCommand, XMLParserDelegate {
     
     func run() {
         getDownloadUrl()
+        downloadipaWith(urlStr: "download","-b", self.bundle)
     }
     
     func getDownloadUrl() -> Void {
@@ -80,8 +81,6 @@ class Download: NSObject, ParsableCommand, XMLParserDelegate {
                     UserDefaults.standard.set(url, forKey: "downloadurl")
                     UserDefaults.standard.synchronize()
                     CommonMethod().showSuccessMessage(text: "获取下载链接为：\(url) 准备开始下载")
-                    self.downloadipaWith(urlStr: "download","-b", self.bundle)
-                    
                 }
                 //                CommonMethod().showSuccessMessage(text: "请求成功 ✅元数据----  \(String(describing: string))")
             }
@@ -105,7 +104,6 @@ class Download: NSObject, ParsableCommand, XMLParserDelegate {
     
     
     func downloadipaWith(urlStr:String...) -> Void {
-        print("开始下载 bundle = \(urlStr)")
         
         //                for i in 0..<10 {
         //                    Thread.sleep(forTimeInterval: 1)
