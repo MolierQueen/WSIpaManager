@@ -25,14 +25,17 @@ let semaphore_download = DispatchSemaphore(value: 0)
 let need2authCode = "MZFinance.BadLogin.Configurator_message"
 var xmlDic = [String:Any]()
 
+let DYLIB_PATH = "IpaManagerExtraDylib"
+let DYLIB_EXECUTABLE_PATH = "@executable_path/\(DYLIB_PATH)/"
+
 let EMPTY_VALUE = "placeholder"
 //公共参数
 class CommonMethod: ParsableArguments {
     
     required init() {
     }
-    @Option(name: [.customShort("x")], help: "这是一个公共参数")
-    var common = false
+    @Option(name: [.short, .long], help: "是否需要日志输出")
+    var verbose = false
     
     //    获取UID
     public func guid() -> String {
@@ -113,16 +116,120 @@ class CommonMethod: ParsableArguments {
         return xmlDic
     }
     
+    //    执行shell脚本
+    func runShell(_ command: String, handle:(Int32, String)->()) {
+        let task = Process()
+        task.launchPath = "/bin/bash"
+        task.arguments = ["-c", command]
+        
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = pipe
+        
+        task.launch()
+        
+        let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: String.Encoding.utf8)
+        
+        task.waitUntilExit()
+        handle(task.terminationStatus, output ?? "")
+    }
+    
+    
+    func writeFile(newBinary: Data?, machoPath: String, isRemove:Bool) -> Bool {
+        if let b = newBinary {
+            do {
+                try b.write(to: URL(fileURLWithPath: machoPath))
+                return true
+            } catch let err {
+                if isRemove {
+                    CommonMethod().showErrorMessage(text: "反注入成功，写文件失败\(err)")
+                } else {
+                    CommonMethod().showErrorMessage(text: "注入成功，写文件失败\(err)")
+                }
+            }
+        }
+        return false
+    }
+    
+    
     //    展示错误信息
-    public func showErrorMessage(text:String) -> Void {
+    func showErrorMessage(text:String) -> Void {
         print("❌ \(String(describing: text))")
     }
     
-    public func showWarningMessage(text:String) -> Void {
+    func showWarningMessage(text:String) -> Void {
         print("⚠️ \(text)")
     }
     
-    public func showSuccessMessage(text:String) -> Void {
+    func showSuccessMessage(text:String) -> Void {
         print("🎉 \(text)")
+    }
+    
+    func showCommonMessage(text:String) -> Void {
+        print("😀 \(text)")
+    }
+    
+}
+
+extension String {
+    func contain(str:String) -> Bool {
+        self.components(separatedBy: str).count > 0
+    }
+}
+
+extension Data {
+    func extract<T>(_ type: T.Type, offset: Int = 0) -> T {
+        let data = self[offset..<offset + MemoryLayout<T>.size]
+        return data.withUnsafeBytes { dataBytes in
+            dataBytes.baseAddress!.assumingMemoryBound(to: UInt8.self).withMemoryRebound(to: T.self, capacity: 1) { (p) -> T in
+                return p.pointee
+            }
+        }
+    }
+}
+
+extension String {
+    init(_ rawCString: (Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8)) {
+        var rawCString = rawCString
+        let rawCStringSize = MemoryLayout.size(ofValue: rawCString)
+        let string = withUnsafePointer(to: &rawCString) { (pointer) -> String in
+            return pointer.withMemoryRebound(to: UInt8.self, capacity: rawCStringSize, {
+                return String(cString: $0)
+            })
+        }
+        self.init(string)
+    }
+    
+    init(data: Data, offset: Int, commandSize: Int, loadCommandString: lc_str) {
+        let loadCommandStringOffset = Int(loadCommandString.offset)
+        let stringOffset = offset + loadCommandStringOffset
+        let length = commandSize - loadCommandStringOffset
+        self = String(data: data[stringOffset..<(stringOffset + length)], encoding: .utf8)!.trimmingCharacters(in: .controlCharacters)
+    }
+}
+
+extension FileManager {
+    static func open(machoPath: String, backup: Bool, handle: (Data?)->()) {
+        do {
+            if FileManager.default.fileExists(atPath: machoPath) {
+                if backup {
+                    let backUpPath = "./\(machoPath.components(separatedBy: "/").last!)_back"
+                    if FileManager.default.fileExists(atPath: backUpPath) {
+                        try FileManager.default.removeItem(atPath: backUpPath)
+                    }
+                    try FileManager.default.copyItem(atPath: machoPath, toPath: backUpPath)
+                    CommonMethod().showCommonMessage(text: "文件已经备份\(backUpPath)")
+                }
+                let data = try Data(contentsOf: URL(fileURLWithPath: machoPath))
+                handle(data)
+            } else {
+                CommonMethod().showErrorMessage(text: "mach-o文件不存在")
+                print("MachO file not exist !")
+                handle(nil)
+            }
+        } catch let err {
+            CommonMethod().showErrorMessage(text: "文件打开错误\(err)")
+            handle(nil)
+        }
     }
 }
