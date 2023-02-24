@@ -7,6 +7,7 @@
 import ArgumentParser
 import Foundation
 import Alamofire
+import class Foundation.Bundle
 class Login: NSObject, ParsableCommand, XMLParserDelegate {
     required override init() {
     }
@@ -28,8 +29,7 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
 
         loginRequest(authCod: "")
         retryLoginIfNeed()
-        loginWith(command:"auth","login","-e", userName, "-p", passWord)
-        print("登录结束")
+        loginWith(command:"auth","login", "-g", CommonMethod().guid(), "-e", userName, "-p", passWord)
     }
     
     func retryLoginIfNeed() -> Void {
@@ -49,7 +49,11 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
     }
     
     func loginRequest(authCod:String) -> Void {
-        var urlStr = "https://"+appstoreDomainForLogin+"/"+loginApi+"?"+"guid=\(String(describing: CommonMethod().guid()))"
+        var domain = appstoreDomainForDownload
+        if authCod.count > 0 {
+            domain = appstoreDomainForLogin
+        }
+        var urlStr = "https://"+domain+"/"+loginApi+"?"+"guid=\(String(describing: CommonMethod().guid()))"
         urlStr = urlStr.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let finaURL = URL(string: urlStr)
         
@@ -58,8 +62,8 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
         var paraDic = [String:String]()
         
         
-        paraDic["appleId"] = "molierzhang@tencent.com"
-        paraDic["password"] = "736430880@QQ.com"+authCod
+//        paraDic["appleId"] = "molierzhang@tencent.com"
+//        paraDic["password"] = "736430880@QQ.com"+authCod
         
 //        paraDic["appleId"] = "zxcznh2011@163.com"
 //        paraDic["password"] = "371099694@QQ.com"+authCod
@@ -67,8 +71,8 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
 //        paraDic["appleId"] = "894970718@qq.com"
 //        paraDic["password"] = "Liuhuiyu11"+authCod
         
-//        paraDic["appleId"] = userName
-//        paraDic["password"] = passWord+authCod
+        paraDic["appleId"] = userName
+        paraDic["password"] = passWord+authCod
         if authCod.count > 0 {
             paraDic["attempt"] = "2"
         } else {
@@ -76,7 +80,7 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
         }
         paraDic["createSession"] = "true"
         paraDic["guid"] = CommonMethod().guid()
-        
+
         paraDic["rmp"] = "0"
         paraDic["why"] = "signIn"
         self.authCode = ""
@@ -158,15 +162,7 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
                     } else {
                         UserDefaults.standard.set(dsid, forKey: "dsid")
                         UserDefaults.standard.synchronize()
-                        let dsid = CommonMethod().getXmlDic()["dsid"] ?? EMPTY_VALUE
-
-                        
-                        let firstName = CommonMethod().getXmlDic()["firstName"] ?? ""
-                        let lastName = CommonMethod().getXmlDic()["lastName"] ?? ""
-                        let appleId = CommonMethod().getXmlDic()["appleId"] ?? ""
-                        CommonMethod().showSuccessMessage(text: "登录成功\n授权ID = \(dsid)\nappleid = \(appleId)\nfirstName = \(firstName)\nlastName = \(lastName)")
 //                        print("元数据----  \(String(describing: string)) rsp = \(String(describing: rsp))")
-
                     }
                 }
             }
@@ -203,15 +199,30 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
         //                    print( "\u{1B}[1A\u{1B}[KDownloaded:我是\(i) ")
         //                    fflush(__stdoutp)
         //                }
+
+            CommonMethod().runShell(shellPath: CommonMethod().myBundlePath(), command: "auth login -g \(CommonMethod().guid()) -e \(userName) -p\(passWord) --verbose") { code, desc in
+                print("taren shir \(desc)")
+                if code == 0 {
+                    let dsid = CommonMethod().getXmlDic()["dsid"] ?? EMPTY_VALUE
+                    let firstName = CommonMethod().getXmlDic()["firstName"] ?? ""
+                    let lastName = CommonMethod().getXmlDic()["lastName"] ?? ""
+                    let appleId = CommonMethod().getXmlDic()["appleId"] ?? ""
+                    CommonMethod().showSuccessMessage(text: "登录成功\n授权ID = \(dsid)\nappleid = \(appleId)\nfirstName = \(firstName)\nlastName = \(lastName)")
+                    return
+                }
+        }
         
-        let bundle = Bundle.module
-        let path = bundle.path(forResource: "downloadmanager", ofType: "")
-        let task = Process()
-        //            task.launchPath = "/usr/local/bin/WSIpamanager"
-        task.launchPath = path
-        task.arguments = command
-        task.launch()
-        task.waitUntilExit()
+//        CommonMethod().runShell(shellPath: path, command: "auth login -e \(userName) -p\(passWord)") { code, desc in
+//            print("描述\(desc) code = \(code)")
+//            if code == 0 {
+//                return
+//            }
+//        }
+//        let task = Process()
+//        task.launchPath = path
+//        task.arguments = command
+//        task.launch()
+//        task.waitUntilExit()
     }
     
     

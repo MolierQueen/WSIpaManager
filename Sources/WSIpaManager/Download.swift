@@ -22,7 +22,7 @@ class Download: NSObject, ParsableCommand, XMLParserDelegate {
     
     @Option(name: [.short, .customLong("bundle")], help: "输入app在applestore上的bundleID")
     //    var bundle: String = "com.tencent.xin"
-    var bundle: String = "com.tencent.QQKSong"
+    var bundle: String = "com.tencent.xin"
     
     
     func run() {
@@ -113,15 +113,20 @@ class Download: NSObject, ParsableCommand, XMLParserDelegate {
         //                    print( "\u{1B}[1A\u{1B}[KDownloaded:我是\(i) ")
         //                    fflush(__stdoutp)
         //                }
-        
-        let bundle = Bundle.module
-        let path = bundle.path(forResource: "downloadmanager", ofType: "")
+        //        shell
+        //        ["-c", "curl -# -O https://example.com/large_file.zip"]
+//        print("download -b \(bundle)")
+
+//        CommonMethod().runShell(shellPath:CommonMethod().myBundlePath(), command: "download -b \(bundle)") { code, desc in
+//            print("+++\(desc)")
+//            return
+//        }
         let task = Process()
-        //            task.launchPath = "/usr/local/bin/WSIpamanager"
-        task.launchPath = path
+        task.launchPath = CommonMethod().myBundlePath()
         task.arguments = urlStr
         task.launch()
         task.waitUntilExit()
+        return
     }
     
     

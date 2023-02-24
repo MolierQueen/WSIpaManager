@@ -6,6 +6,7 @@
 //
 import ArgumentParser
 import Foundation
+
 let GET_REQUEST = "GET"
 let POST_REQUEST = "POST"
 
@@ -93,7 +94,6 @@ class CommonMethod: ParsableArguments {
         return addressBytes.joined().uppercased()
     }
     
-    
     func paraData(data:Data) -> Dictionary<String, Any> {
         let dict = try? JSONSerialization.jsonObject(with: data, options: .mutableContainers)
         if dict == nil {
@@ -117,21 +117,30 @@ class CommonMethod: ParsableArguments {
     }
     
     //    执行shell脚本
-    func runShell(_ command: String, handle:(Int32, String)->()) {
+    func runShell(shellPath:String, command: String, handle:(Int32, String)->()) {
         let task = Process()
-        task.launchPath = "/bin/bash"
-        task.arguments = ["-c", command]
-        
+        task.launchPath = shellPath
+        if shellPath == "/bin/bash" {
+            task.arguments = ["-c", command]
+        } else {
+            task.arguments = command.components(separatedBy: " ")
+        }
+
         let pipe = Pipe()
         task.standardOutput = pipe
         task.standardError = pipe
-        
         task.launch()
         
         let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: String.Encoding.utf8)
-        
-        task.waitUntilExit()
         handle(task.terminationStatus, output ?? "")
+        task.waitUntilExit()
+    }
+    
+    func myBundlePath() -> String {
+        return ""
+//        let bundle = Bundle.module
+//        let path = bundle.path(forResource: "downloadmanager", ofType: "")!
+//        return path
     }
     
     
@@ -166,7 +175,7 @@ class CommonMethod: ParsableArguments {
     }
     
     func showCommonMessage(text:String) -> Void {
-        print("😀 \(text)")
+        print("👉🏻 \(text)")
     }
     
 }

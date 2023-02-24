@@ -9,7 +9,7 @@ class wsipamanager: ParsableCommand {
     
     static var configuration = CommandConfiguration(
             abstract: "download from appstore",
-            subcommands: [Search.self, Login.self, Download.self, Inject.self, Uninject.self])
+            subcommands: [Search.self, Login.self, Download.self, Inject.self, Uninject.self, Resign.self])
     
      public func run() {
          if CommandLine.arguments.count <= 1 {

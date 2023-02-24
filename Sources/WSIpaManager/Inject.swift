@@ -21,6 +21,9 @@ class Inject: ParsableCommand {
     
     @Option(name: [.short, .long], help: "将要被注入的ipa文件路径,注意是ipa文件，不是mach-o文件")
     var targetPath: String = ""
+    
+    @Flag(name: [.short, .long], help: "是否要强制注入")
+    var force: Bool = false
 
      func run() {
          if FileManager.default.fileExists(atPath: sourcePath) == false ||
@@ -31,19 +34,15 @@ class Inject: ParsableCommand {
          let ipaName = targetPath.components(separatedBy: "/").last!
          if ipaName.contain(str: ".ipa") == false {
              CommonMethod().showErrorMessage(text: "不是ipa文件target = \(targetPath)")
+             return
          }
          let operationPath:String = String(targetPath.dropLast(ipaName.count))
-         CommonMethod().showCommonMessage(text: "操作路径为\(operationPath)")
-         injectIPA(ipaPath: targetPath, ipaName: ipaName, injectPath: sourcePath, operationPath: operationPath) { success in
+         prepareToInjectIPA(ipaPath: targetPath, ipaName: ipaName, injectPath: sourcePath, operationPath: operationPath) { success in
          }
-         
-         
-         
-         print("source = \(sourcePath) target = \(targetPath)")
     }
     
     
-    func injectIPA(ipaPath: String, ipaName:String, injectPath: String, operationPath:String, finishHandle:(Bool)->()) {
+    func prepareToInjectIPA(ipaPath: String, ipaName:String, injectPath: String, operationPath:String, finishHandle:(Bool)->()) {
         var result = false
         var frameworkNameWithExt = ""
         var injectPathName = ""
@@ -64,9 +63,12 @@ class Inject: ParsableCommand {
             CommonMethod().showErrorMessage(text: "动态库不合法")
             finishHandle(false)
         }
-        CommonMethod().runShell("unzip -o \(ipaPath) -d \(operationPath)") { code, des in
+        CommonMethod().showCommonMessage(text: "入参检查完毕,开始解压ipa...")
+        CommonMethod().runShell(shellPath:"/bin/bash", command:"unzip -o \(ipaPath) -d \(operationPath)") { code, des in
             //            解压后取出app文件和macho文件的路径
             if code == 0 {
+                CommonMethod().showCommonMessage(text: "解压ipa成功，开始注入...")
+                var appNmae = ""
                 let payload = operationPath+"Payload"
                 do {
                     let fileList = try FileManager.default.contentsOfDirectory(atPath: payload)
@@ -74,27 +76,34 @@ class Inject: ParsableCommand {
                     var appPath = ""
                     for item in fileList {
                         if item.hasSuffix(".app") {
+                            appNmae = item.components(separatedBy: ".").first!
                             appPath = payload + "/\(item)"
-                            machoPath = appPath+"/\(item.components(separatedBy: ".")[0])"
+                            machoPath = appPath+"/\(appNmae)"
                             break
                         }
                     }
                     
-                    //                    创建一个文件夹
-                    try FileManager.default.createDirectory(atPath: "\(appPath)/\(DYLIB_PATH)/", withIntermediateDirectories: true, attributes: nil)
+                    if FileManager.default.fileExists(atPath: "\(appPath)/\(DYLIB_PATH)/") == false {
+                        //                    创建一个文件夹
+                        try FileManager.default.createDirectory(atPath: "\(appPath)/\(DYLIB_PATH)/", withIntermediateDirectories: true, attributes: nil)
+                    }
+                    try FileManager.default.copyItem(atPath: injectPath, toPath: "\(appPath)/\(DYLIB_PATH)/\(frameworkNameWithExt)")
+                    
                     //                    把要注入的动态库放进去
-                    try FileManager.default.moveItem(atPath: injectPath, toPath: "\(appPath)/\(DYLIB_PATH)/\(frameworkNameWithExt)")
+//                    try FileManager.default.moveItem(atPath: injectPath, toPath: "\(appPath)/\(DYLIB_PATH)/\(frameworkNameWithExt)")
                     
                     //                    开始注入
                     injectMachO(machoPath: machoPath, backup: false, injectPath: injectPathName) { success in
                         if success {
+                            CommonMethod().showCommonMessage(text: "注入成功，开始将产物打包成ipa...")
                             //                            注入完成后压缩打包成ipa
-                            CommonMethod().runShell("zip -r \(ipaPath) \(payload)") { code, desc in
+                            let newAppPath = operationPath + appNmae + "_injected.ipa"
+                            CommonMethod().runShell(shellPath:"/bin/bash", command:"cd \(operationPath); zip -r \(newAppPath) Payload") { code, desc in
                                 if code == 0 {
-                                    CommonMethod().showSuccessMessage(text: "注入成功，已经覆盖了原ipa")
+                                    CommonMethod().showSuccessMessage(text: "任务完成，新ipa = \(newAppPath)")
                                     result = true
                                 } else {
-                                    CommonMethod().showErrorMessage(text: "压缩失败\(des)")
+                                    CommonMethod().showErrorMessage(text: "打包ipa失败\(des)")
                                 }
                             }
                         }
@@ -131,7 +140,7 @@ class Inject: ParsableCommand {
                     canInject(binary: binary, dylibPath: injectPath) { canInject in
                         if canInject {
                             //                                可以注入，开始注入
-                            doRealInject(binary: binary, dylibPath: injectPath ) { newBinary in
+                            doRealInject(binary: binary, dylibPath: injectPath) { newBinary in
                                 result = CommonMethod().writeFile(newBinary: newBinary, machoPath: machoPath, isRemove: false)
                             }
                         }
@@ -149,6 +158,11 @@ class Inject: ParsableCommand {
         let header = binary.extract(mach_header_64.self)
         //            先取出Mach64Header
         var offset = MemoryLayout.size(ofValue: header)
+        if header.ncmds >= 512 {
+            CommonMethod().showErrorMessage(text: "动态库已满，无法注入 一共有 \(header.ncmds)个动态库")
+            handle(false)
+            return
+        }
         for _ in 0..<header.ncmds {
             let loadCommand = binary.extract(load_command.self, offset: offset)
             switch loadCommand.cmd {
@@ -156,10 +170,12 @@ class Inject: ParsableCommand {
                 let command = binary.extract(dylib_command.self, offset: offset)
                 let curPath = String(data: binary, offset: offset, commandSize: Int(command.cmdsize), loadCommandString: command.dylib.name)
                 let curName = curPath.components(separatedBy: "/").last
-                if curName == dylibPath || curPath == dylibPath {
-                    CommonMethod().showErrorMessage(text: "该动态库已经存在\(curPath)")
-                    handle(false)
-                    return
+                if !force {
+                    if curName == dylibPath || curPath == dylibPath {
+                        CommonMethod().showErrorMessage(text: "该动态库已经存在\(curPath)")
+                        handle(false)
+                        return
+                    }
                 }
                 break
             default:

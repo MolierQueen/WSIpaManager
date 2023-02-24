@@ -33,40 +33,53 @@ class Uninject: ParsableCommand {
         let ipaName = targetPath.components(separatedBy: "/").last!
         if ipaName.contain(str: ".ipa") == false {
             CommonMethod().showErrorMessage(text: "不是ipa文件target = \(targetPath)")
+            return
         }
         let operationPath:String = String(targetPath.dropLast(ipaName.count))
-        CommonMethod().showCommonMessage(text: "操作路径为\(operationPath)")
         
         print("dylibName = \(dylibName) target = \(targetPath)")
-        unInjectMacho(ipaPath: targetPath, dylibNmae: dylibName, operationPath:operationPath) { success in
-            CommonMethod().showCommonMessage(text: "操作结束")
+        prepareToUnInjectMacho(ipaPath: targetPath, dylibNmae: dylibName, operationPath:operationPath) { success in
         }
         
     }
     
-    func unInjectMacho(ipaPath: String, dylibNmae: String, operationPath:String, finishHandle:(Bool)->()) {
+    func prepareToUnInjectMacho(ipaPath: String, dylibNmae: String, operationPath:String, finishHandle:(Bool)->()) {
         var result = false
-
-        CommonMethod().runShell("unzip -o \(ipaPath) -d \(operationPath)") { code, desc in
+        CommonMethod().showCommonMessage(text: "入参检查完毕,开始解压ipa...")
+        CommonMethod().runShell(shellPath:"/bin/bash", command:"unzip -o \(ipaPath) -d \(operationPath)") { code, desc in
             if code == 0 {
-                
-                let payload = operationPath+"/Payload"
+                CommonMethod().showCommonMessage(text: "解压ipa成功，开始反注入...")
+                var appNmae = ""
+                let payload = operationPath+"Payload"
                 do {
                     let fileList = try FileManager.default.contentsOfDirectory(atPath: payload)
                     var machoPath = ""
                     var appPath = ""
                     for item in fileList {
                         if item.hasSuffix(".app") {
+                            appNmae = item.components(separatedBy: ".").first!
                             appPath = payload + "/\(item)"
-                            machoPath = appPath+"/\(item.components(separatedBy: ".")[0])"
+                            machoPath = appPath+"/\(appNmae)"
                             break
                         }
                     }
                     removeMachO(machoPath: machoPath, backup: false, dylibName: dylibName) { success in
                         if success {
-                            CommonMethod().runShell("zip -r \(ipaPath) \(payload)") { code, desc in
+                            CommonMethod().showCommonMessage(text: "反注入成功，开始将产物打包成ipa...")
+                            do {
+                                //                                删除动态库源文件(如果有的话)
+                                let dylibSuorcePath = appPath + "/" + DYLIB_PATH + "/" + dylibName
+                                if FileManager.default.fileExists(atPath: dylibSuorcePath) {
+                                    try FileManager.default.removeItem(atPath: dylibSuorcePath)
+                                }
+                            }catch let error {
+                                CommonMethod().showErrorMessage(text: "反注入成功，但是删除源文件失败...\(error)")
+                            }
+
+                            let newAppPath = operationPath + appNmae + "_unInjected.ipa"
+                            CommonMethod().runShell(shellPath: "/bin/bash", command:"cd \(operationPath); zip -r \(newAppPath) Payload") { code, desc in
                                 if code == 0 {
-                                    CommonMethod().showSuccessMessage(text: "反注入成功，已经覆盖了原ipa")
+                                    CommonMethod().showSuccessMessage(text: "任务完成，新ipa = \(ipaPath)")
                                     result = true
                                 } else {
                                     CommonMethod().showErrorMessage(text: "删除成功，但最后打包失败\(desc)")
@@ -125,9 +138,7 @@ class Uninject: ParsableCommand {
             case LC_REEXPORT_DYLIB, LC_LOAD_WEAK_DYLIB, LC_LOAD_UPWARD_DYLIB, UInt32(LC_LOAD_DYLIB):
                 let dylib_command = newbinary.extract(dylib_command.self, offset: offset)
                 let path = String.init(data: newbinary, offset: offset, commandSize: Int(dylib_command.cmdsize), loadCommandString: dylib_command.dylib.name)
-                print("我算出来的path = \(path)++++传入的path\(dylibName)")
                 if path.contain(str: dylibName) {
-                    //                        if path == dylibPath {
                     start = offset
                     size = Int(dylib_command.cmdsize)
                     newheader = mach_header_64(magic: header.magic, cputype: header.cputype, cpusubtype: header.cpusubtype, filetype: header.filetype, ncmds: header.ncmds-1, sizeofcmds: header.sizeofcmds-UInt32(dylib_command.cmdsize), flags: header.flags, reserved: header.reserved)
@@ -152,7 +163,6 @@ class Uninject: ParsableCommand {
             newbinary.replaceSubrange(subrangeOld, with: commandData)
             newbinary.replaceSubrange(mr, with: nh)
         }
-        
         handle(newbinary)
     }
     
