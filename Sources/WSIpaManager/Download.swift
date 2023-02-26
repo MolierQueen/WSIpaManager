@@ -6,9 +6,6 @@
 //
 import ArgumentParser
 import Foundation
-import Commands
-import Alamofire
-import Files
 class Download: NSObject, ParsableCommand, XMLParserDelegate {
     required override init() {
     }

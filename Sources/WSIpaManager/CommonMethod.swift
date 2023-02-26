@@ -30,6 +30,15 @@ let DYLIB_PATH = "IpaManagerExtraDylib"
 let DYLIB_EXECUTABLE_PATH = "@executable_path/\(DYLIB_PATH)/"
 
 let EMPTY_VALUE = "placeholder"
+
+class AppInfo {
+    var appName:String = ""
+    var appBundleID:String = ""
+    var appPayloadPath:String = ""
+    init() {
+    }
+}
+
 //公共参数
 class CommonMethod: ParsableArguments {
     
@@ -133,14 +142,42 @@ class CommonMethod: ParsableArguments {
         
         let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: String.Encoding.utf8)
         handle(task.terminationStatus, output ?? "")
-        task.waitUntilExit()
+    }
+    
+    func unzipIpaFile(ipaPath:String) -> AppInfo? {
+        let ipaName = ipaPath.components(separatedBy: "/").last!
+        if ipaName.contain(str: ".ipa") == false {
+            CommonMethod().showErrorMessage(text: "不是ipa文件target = \(ipaPath)")
+            return nil
+        }
+        let ipaNameWithoutExt = ipaName.components(separatedBy: ".").first!
+        var app:AppInfo = AppInfo()
+        let operationPath:String = String(ipaPath.dropLast(ipaName.count))
+        CommonMethod().runShell(shellPath:"/bin/bash", command:"unzip -o \(ipaPath) -d \(operationPath)") { code, des in
+            if code == 0 {
+                do {
+                    let payloadPath = operationPath + ipaNameWithoutExt + "/" + "Payload"
+                    let appRealName = try FileManager.default.contentsOfDirectory(atPath: payloadPath).first!
+                    let appRealNameWithoutExt = appRealName.components(separatedBy: ".").first!
+                    app.appName = appRealNameWithoutExt
+                    app.appPayloadPath = payloadPath
+
+                } catch let err {
+                    CommonMethod().showErrorMessage(text: "解压成功但是文件操作错误\(err)")
+                }
+                
+            } else {
+                CommonMethod().showErrorMessage(text: "解压失败\(des)")
+            }
+        }
+        return app
     }
     
     func myBundlePath() -> String {
-        return ""
-//        let bundle = Bundle.module
-//        let path = bundle.path(forResource: "downloadmanager", ofType: "")!
-//        return path
+//        return ""
+        let bundle = Bundle.module
+        let path = bundle.path(forResource: "downloadmanager", ofType: "")!
+        return path
     }
     
     

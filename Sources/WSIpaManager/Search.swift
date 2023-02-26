@@ -6,8 +6,6 @@
 //
 import ArgumentParser
 import Foundation
-import Alamofire
-
 class Search: ParsableCommand {
     required init() {
     }

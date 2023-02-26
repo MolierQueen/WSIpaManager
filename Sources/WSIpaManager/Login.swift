@@ -6,7 +6,6 @@
 //
 import ArgumentParser
 import Foundation
-import Alamofire
 import class Foundation.Bundle
 class Login: NSObject, ParsableCommand, XMLParserDelegate {
     required override init() {
@@ -22,13 +21,22 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
     @Option(name: [.short, .customLong("password")], help: "输入appstore的密码（login、download命令必传）")
     var passWord: String = ""
     
+    var needRetry = false
     
     var authCode = ""
     
     func run() {
 
+        CommonMethod().showCommonMessage(text: "开始进行第一次登录尝试...")
         loginRequest(authCod: "")
-        retryLoginIfNeed()
+        if needRetry {
+            retryLoginIfNeed()
+        }
+        
+        if needRetry {
+            retryLoginIfNeed()
+        }
+        
         loginWith(command:"auth","login", "-g", CommonMethod().guid(), "-e", userName, "-p", passWord)
     }
     
@@ -36,19 +44,20 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
         //        如果是-5000失败那就再试一次
         let code = CommonMethod().getXmlDic()["failureType"] ?? ""
         if code as! String == "-5000" {
-            print("携带Cookie尝试")
+            CommonMethod().showCommonMessage(text: "开始携带Cookie尝试登录...")
             self.loginRequest(authCod: "")
         }
         
         //        如果需要2次认证那就再试一次
         let msg = CommonMethod().getXmlDic()["customerMessage"] ?? ""
         if msg as! String == need2authCode {
-            print("携带双重认证码继续尝试")
+            CommonMethod().showCommonMessage(text: "开始携带双重认证码尝试登录...")
             self.loginRequest(authCod: self.authCode)
         }
     }
     
     func loginRequest(authCod:String) -> Void {
+        self.needRetry = false
         var domain = appstoreDomainForDownload
         if authCod.count > 0 {
             domain = appstoreDomainForLogin
@@ -57,19 +66,7 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
         urlStr = urlStr.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let finaURL = URL(string: urlStr)
         
-//        print("开始登录进行登录... url == \(urlStr)")
-        print("开始进行登录...")
         var paraDic = [String:String]()
-        
-        
-//        paraDic["appleId"] = "molierzhang@tencent.com"
-//        paraDic["password"] = "736430880@QQ.com"+authCod
-        
-//        paraDic["appleId"] = "zxcznh2011@163.com"
-//        paraDic["password"] = "371099694@QQ.com"+authCod
-        
-//        paraDic["appleId"] = "894970718@qq.com"
-//        paraDic["password"] = "Liuhuiyu11"+authCod
         
         paraDic["appleId"] = userName
         paraDic["password"] = passWord+authCod
@@ -80,7 +77,8 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
         }
         paraDic["createSession"] = "true"
         paraDic["guid"] = CommonMethod().guid()
-
+//        paraDic["guid"] = "149D997D6A98"
+        
         paraDic["rmp"] = "0"
         paraDic["why"] = "signIn"
         self.authCode = ""
@@ -140,23 +138,25 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
 
 
                 if string.components(separatedBy: need2authCode).count > 1 {
-                    let code = CommonMethod().getXmlDic()["customerMessage"] ?? ""
-                    print("二次验证元数据----  \(String(describing: code))")
-
-                    print("请输入双重认证的Code：")
+                    CommonMethod().showWarningMessage(text: "请输入双重认证的Code：")
                     let authCode = readLine();
                     self.authCode = authCode ?? ""
+                    self.needRetry = true
                 } else {
                     guard let response = rsp as? HTTPURLResponse, response.statusCode == 200 else {
                         return
                     }
-                    let cookie:String? = response.headers["Set-Cookie"]
+                    let cookie:String? = response.allHeaderFields["Set-Cookie"] as? String
                     UserDefaults.standard.set(cookie, forKey: "cookie")
                     UserDefaults.standard.synchronize()
                     let dsid = CommonMethod().getXmlDic()["dsid"] ?? EMPTY_VALUE
                     if dsid as! String == EMPTY_VALUE {
                         let code = CommonMethod().getXmlDic()["failureType"] ?? ""
-                        CommonMethod().showErrorMessage(text: "登录失败 没有获取到 dsid\nerrorcode=\(code)")
+                        if code as! String != "-5000" {
+                            CommonMethod().showErrorMessage(text: "登录失败 没有获取到 dsid\nerrorcode=\(code)")
+                        } else {
+                            self.needRetry = true
+                        }
 //                        print("元数据----  \(String(describing: string)) rsp = \(String(describing: rsp))")
                         
                     } else {
@@ -170,6 +170,7 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
         }
         task.resume()
         _ = semaphore_MyLogin.wait(timeout: .distantFuture)
+        CommonMethod().showCommonMessage(text: "此次登录请求结束")
     }
     
 
@@ -190,7 +191,7 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
     
     
     func loginWith(command:String...) -> Void {
-        print(command)
+        //        print(command)
         //                for i in 0..<10 {
         //                    Thread.sleep(forTimeInterval: 1)
         //                    let x = 0
@@ -199,18 +200,17 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
         //                    print( "\u{1B}[1A\u{1B}[KDownloaded:我是\(i) ")
         //                    fflush(__stdoutp)
         //                }
-
-            CommonMethod().runShell(shellPath: CommonMethod().myBundlePath(), command: "auth login -g \(CommonMethod().guid()) -e \(userName) -p\(passWord) --verbose") { code, desc in
-                print("taren shir \(desc)")
-                if code == 0 {
-                    let dsid = CommonMethod().getXmlDic()["dsid"] ?? EMPTY_VALUE
-                    let firstName = CommonMethod().getXmlDic()["firstName"] ?? ""
-                    let lastName = CommonMethod().getXmlDic()["lastName"] ?? ""
-                    let appleId = CommonMethod().getXmlDic()["appleId"] ?? ""
-                    CommonMethod().showSuccessMessage(text: "登录成功\n授权ID = \(dsid)\nappleid = \(appleId)\nfirstName = \(firstName)\nlastName = \(lastName)")
-                    return
-                }
+        CommonMethod().showCommonMessage(text: "开始进行最终登录...")
+        CommonMethod().runShell(shellPath: CommonMethod().myBundlePath(), command: "auth login -g \(CommonMethod().guid()) -e \(userName) -p\(passWord)") { code, desc in
+            if code == 0 {
+                let dsid = CommonMethod().getXmlDic()["dsid"] ?? EMPTY_VALUE
+                let firstName = CommonMethod().getXmlDic()["firstName"] ?? ""
+                let lastName = CommonMethod().getXmlDic()["lastName"] ?? ""
+                let appleId = CommonMethod().getXmlDic()["appleId"] ?? ""
+                CommonMethod().showSuccessMessage(text: "登录成功\n授权ID = \(dsid)\nappleid = \(appleId)\nfirstName = \(firstName)\nlastName = \(lastName)")
+            }
         }
+        return
         
 //        CommonMethod().runShell(shellPath: path, command: "auth login -e \(userName) -p\(passWord)") { code, desc in
 //            print("描述\(desc) code = \(code)")

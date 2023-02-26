@@ -1,39 +1,12 @@
 {
   "pins" : [
     {
-      "identity" : "alamofire",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Alamofire/Alamofire.git",
-      "state" : {
-        "revision" : "78424be314842833c04bc3bef5b72e85fff99204",
-        "version" : "5.6.4"
-      }
-    },
-    {
-      "identity" : "files",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/johnsundell/files.git",
-      "state" : {
-        "revision" : "d273b5b7025d386feef79ef6bad7de762e106eaf",
-        "version" : "4.2.0"
-      }
-    },
-    {
       "identity" : "swift-argument-parser",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser",
       "state" : {
         "revision" : "fee6933f37fde9a5e12a1e4aeaa93fe60116ff2a",
         "version" : "1.2.2"
-      }
-    },
-    {
-      "identity" : "swift-commands",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/qiuzhifei/swift-commands",
-      "state" : {
-        "revision" : "0883a0383038c41b398945b2e6fd233baaacc394",
-        "version" : "0.6.0"
       }
     }
   ],
