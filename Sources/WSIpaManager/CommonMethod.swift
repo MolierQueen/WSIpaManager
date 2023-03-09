@@ -198,7 +198,6 @@ class CommonMethod: ParsableArguments {
         return path
     }
     
-    
     func writeFile(newBinary: Data?, machoPath: String, isRemove:Bool) -> Bool {
         if let b = newBinary {
             do {

@@ -31,7 +31,7 @@ class Generateproj: ParsableCommand {
             return
         }
         
-        copyDepencyFile()
+        Configenv().run()
         
         let gitUrl = "https://github.com/MolierQueen/WSIpaHookTool.git"
         CommonMethod().showCommonMessage(text: "开始生成工程...")
@@ -52,53 +52,6 @@ class Generateproj: ParsableCommand {
             if code2 == 0 {
                 CommonMethod().showSuccessMessage(text: "任务完成")
             }
-        }
-    }
-    
-    func copyDepencyFile() -> Void {
-        let runtime_1 = CommonMethod().myBundlePathCustomPath(path: "libstdc++.6.0.9",extName: ".dylib")
-        let runtime_2 = CommonMethod().myBundlePathCustomPath(path: "libstdc++.6",extName: ".dylib")
-        let runtime_3 = CommonMethod().myBundlePathCustomPath(path: "libstdc++",extName: ".dylib")
-        let runtimeTarget = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS.simruntime/Contents/Resources/RuntimeRoot/usr/lib/"
-        
-        
-        let SDK_1 = CommonMethod().myBundlePathCustomPath(path: "libstdc++.6.0.9",extName: ".tbd")
-        let SDK_2 = CommonMethod().myBundlePathCustomPath(path: "libstdc++.6",extName: ".tbd")
-        let SDK_3 = CommonMethod().myBundlePathCustomPath(path: "libstdc++",extName: ".tbd")
-        let MACTarget = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/"
-        let iphoneTarget = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib/"
-        let simulatorTarget = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/usr/lib/"
-        CommonMethod().showCommonMessage(text: "开始配置依赖...")
-        
-        
-        fileCopyIfNeed(filePath: runtime_3, targetPath: runtimeTarget)
-        fileCopyIfNeed(filePath: runtime_2, targetPath: runtimeTarget)
-        fileCopyIfNeed(filePath: runtime_1, targetPath: runtimeTarget)
-        
-        fileCopyIfNeed(filePath: SDK_1, targetPath: MACTarget)
-        fileCopyIfNeed(filePath: SDK_2, targetPath: MACTarget)
-        fileCopyIfNeed(filePath: SDK_3, targetPath: MACTarget)
-        
-        fileCopyIfNeed(filePath: SDK_1, targetPath: iphoneTarget)
-        fileCopyIfNeed(filePath: SDK_2, targetPath: iphoneTarget)
-        fileCopyIfNeed(filePath: SDK_3, targetPath: iphoneTarget)
-        
-        fileCopyIfNeed(filePath: SDK_1, targetPath: simulatorTarget)
-        fileCopyIfNeed(filePath: SDK_2, targetPath: simulatorTarget)
-        fileCopyIfNeed(filePath: SDK_3, targetPath: simulatorTarget)
-    }
-    
-    func fileCopyIfNeed(filePath:String, targetPath:String) -> Void {
-        let fileName = filePath.components(separatedBy: "/").last!
-        do {
-            if !FileManager.default.fileExists(atPath: "\(targetPath)/\(fileName)") {
-                try FileManager.default.copyItem(atPath:filePath, toPath: targetPath)
-            } else {
-                CommonMethod().showWarningMessage(text: "文件已存在 = \(targetPath)/\(fileName)")
-            }
-        } catch let err {
-            CommonMethod().showErrorMessage(text: "配置依赖失败 = \(targetPath)/\(fileName) error = \(err)")
-            Generateproj.exit()
         }
     }
 }
