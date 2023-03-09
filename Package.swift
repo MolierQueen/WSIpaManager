@@ -19,10 +19,11 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ],
             resources:[
-//                .copy("downloadmanager"),
+                //                .copy("downloadmanager"),
                 .process("downloadmanager"),
-                
-                ]
+                .process("injecttool"),
+                .process("dependency"),
+            ]
         ),
         
         

@@ -26,18 +26,28 @@ class Inject: ParsableCommand {
     var force: Bool = false
 
      func run() {
-         if FileManager.default.fileExists(atPath: sourcePath) == false ||
-                FileManager.default.fileExists(atPath: targetPath) == false {
-             CommonMethod().showErrorMessage(text: "路径错误source = \(sourcePath) target = \(targetPath)")
-             return
-         }
-         let ipaName = targetPath.components(separatedBy: "/").last!
-         if ipaName.contain(str: ".ipa") == false {
-             CommonMethod().showErrorMessage(text: "不是ipa文件target = \(targetPath)")
-             return
-         }
-         let operationPath:String = String(targetPath.dropLast(ipaName.count))
-         prepareToInjectIPA(ipaPath: targetPath, ipaName: ipaName, injectPath: sourcePath, operationPath: operationPath) { success in
+         if force {
+             CommonMethod().showCommonMessage(text: "开始进行强制注入...")
+             let command = "install -c load -p \(sourcePath) -t \(targetPath)"
+             CommonMethod().runShell(shellPath: CommonMethod().myBundlePathForInject(), command: command) { code, desc in
+                 if code == 0 {
+                     CommonMethod().showSuccessMessage(text: "已经使用WSIpaManager注入成功...")
+                 }
+             }
+         } else {
+             if FileManager.default.fileExists(atPath: sourcePath) == false ||
+                    FileManager.default.fileExists(atPath: targetPath) == false {
+                 CommonMethod().showErrorMessage(text: "路径错误source = \(sourcePath) target = \(targetPath)")
+                 return
+             }
+             let ipaName = targetPath.components(separatedBy: "/").last!
+             if ipaName.contains(".ipa") == false {
+                 CommonMethod().showErrorMessage(text: "不是ipa文件target = \(targetPath)")
+                 return
+             }
+             let operationPath:String = String(targetPath.dropLast(ipaName.count))
+             prepareToInjectIPA(ipaPath: targetPath, ipaName: ipaName, injectPath: sourcePath, operationPath: operationPath) { success in
+             }
          }
     }
     
@@ -53,17 +63,17 @@ class Inject: ParsableCommand {
             //            即将被注入的动态库的扩展名分开（取出名字）
             let frameworkName = frameworkNameWithExt.components(separatedBy: ".").first!
             
-            injectPathName = "\(DYLIB_EXECUTABLE_PATH)/\(frameworkNameWithExt)/\(frameworkName)"
+            injectPathName = "\(DYLIB_EXECUTABLE_PATH)\(frameworkNameWithExt)/\(frameworkName)"
             
             
         } else if injectPath.hasSuffix(".dylib") {
             frameworkNameWithExt = injectPath.components(separatedBy: "/").last!
-            injectPathName = "\(DYLIB_EXECUTABLE_PATH)+\(frameworkNameWithExt)"
+            injectPathName = "\(DYLIB_EXECUTABLE_PATH)\(frameworkNameWithExt)"
         } else {
             CommonMethod().showErrorMessage(text: "动态库不合法")
             finishHandle(false)
         }
-        CommonMethod().showCommonMessage(text: "入参检查完毕,开始解压ipa...")
+        CommonMethod().showCommonMessage(text: "入参检查完毕，准备动态库注入，开始解压ipa...")
         CommonMethod().runShell(shellPath:"/bin/bash", command:"unzip -o \(ipaPath) -d \(operationPath)") { code, des in
             //            解压后取出app文件和macho文件的路径
             if code == 0 {
@@ -165,9 +175,11 @@ class Inject: ParsableCommand {
         }
         for _ in 0..<header.ncmds {
             let loadCommand = binary.extract(load_command.self, offset: offset)
-            switch loadCommand.cmd {
+            let tmpCmd:UInt32 = loadCommand.cmd
+            switch tmpCmd {
             case LC_REEXPORT_DYLIB, LC_LOAD_UPWARD_DYLIB, LC_LOAD_WEAK_DYLIB, UInt32(LC_LOAD_DYLIB):
                 let command = binary.extract(dylib_command.self, offset: offset)
+//                print("dongtaiku = \(command)")
                 let curPath = String(data: binary, offset: offset, commandSize: Int(command.cmdsize), loadCommandString: command.dylib.name)
                 let curName = curPath.components(separatedBy: "/").last
                 if !force {

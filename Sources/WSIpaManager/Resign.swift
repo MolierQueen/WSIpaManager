@@ -39,7 +39,7 @@ class Resign: ParsableCommand {
     func resignIPA(inputIPAPath: String, certificate: String, mobileprovision: String) -> Void {
 
         let ipaName = inputIPAPath.components(separatedBy: "/").last!
-        if ipaName.contain(str: ".ipa") == false {
+        if ipaName.contains(".ipa") == false {
             CommonMethod().showErrorMessage(text: "不是ipa文件target = \(inputIPAPath)")
             return
         }

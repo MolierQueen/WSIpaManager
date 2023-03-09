@@ -18,16 +18,33 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
     @Option(name: [.short, .customLong("username")], help: "输入appstore的用户名（login、download命令必传）")
     var userName: String = ""
     
-    @Option(name: [.short, .customLong("password")], help: "输入appstore的密码（login、download命令必传）")
-    var passWord: String = ""
+//    @Option(name: [.short, .customLong("password")], help: "输入appstore的密码（login、download命令必传）")
+//    var passWord: String = ""
     
     var needRetry = false
     
     var authCode = ""
     
+    var passWord = ""
+    
     func run() {
+        
+        if userName.count <= 0 {
+            CommonMethod().showErrorMessage(text: "需要输入用户名")
+            Login.exit()
+        }
 
+        
+        CommonMethod().showCommonMessage(text: "请输入密码：")
+        guard let psd = getpass("") else {
+            CommonMethod().showErrorMessage(text: "需要输入密码")
+            Login.exit()
+        }
+        passWord = String(cString: psd)
+        
+        
         CommonMethod().showCommonMessage(text: "开始进行第一次登录尝试...")
+
         loginRequest(authCod: "")
         if needRetry {
             retryLoginIfNeed()
@@ -210,7 +227,7 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
                 CommonMethod().showSuccessMessage(text: "登录成功\n授权ID = \(dsid)\nappleid = \(appleId)\nfirstName = \(firstName)\nlastName = \(lastName)")
             }
         }
-        return
+//        return
         
 //        CommonMethod().runShell(shellPath: path, command: "auth login -e \(userName) -p\(passWord)") { code, desc in
 //            print("描述\(desc) code = \(code)")

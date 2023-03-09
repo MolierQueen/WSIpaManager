@@ -31,7 +31,7 @@ class Uninject: ParsableCommand {
             return
         }
         let ipaName = targetPath.components(separatedBy: "/").last!
-        if ipaName.contain(str: ".ipa") == false {
+        if ipaName.contains(".ipa") == false {
             CommonMethod().showErrorMessage(text: "不是ipa文件target = \(targetPath)")
             return
         }
@@ -138,7 +138,7 @@ class Uninject: ParsableCommand {
             case LC_REEXPORT_DYLIB, LC_LOAD_WEAK_DYLIB, LC_LOAD_UPWARD_DYLIB, UInt32(LC_LOAD_DYLIB):
                 let dylib_command = newbinary.extract(dylib_command.self, offset: offset)
                 let path = String.init(data: newbinary, offset: offset, commandSize: Int(dylib_command.cmdsize), loadCommandString: dylib_command.dylib.name)
-                if path.contain(str: dylibName) {
+                if path.contains(dylibName) {
                     start = offset
                     size = Int(dylib_command.cmdsize)
                     newheader = mach_header_64(magic: header.magic, cputype: header.cputype, cpusubtype: header.cpusubtype, filetype: header.filetype, ncmds: header.ncmds-1, sizeofcmds: header.sizeofcmds-UInt32(dylib_command.cmdsize), flags: header.flags, reserved: header.reserved)

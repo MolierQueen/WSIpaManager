@@ -140,43 +140,61 @@ class CommonMethod: ParsableArguments {
         task.standardError = pipe
         task.launch()
         
+        task.waitUntilExit()
         let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: String.Encoding.utf8)
         handle(task.terminationStatus, output ?? "")
     }
     
-    func unzipIpaFile(ipaPath:String) -> AppInfo? {
-        let ipaName = ipaPath.components(separatedBy: "/").last!
-        if ipaName.contain(str: ".ipa") == false {
-            CommonMethod().showErrorMessage(text: "不是ipa文件target = \(ipaPath)")
-            return nil
-        }
-        let ipaNameWithoutExt = ipaName.components(separatedBy: ".").first!
-        var app:AppInfo = AppInfo()
-        let operationPath:String = String(ipaPath.dropLast(ipaName.count))
-        CommonMethod().runShell(shellPath:"/bin/bash", command:"unzip -o \(ipaPath) -d \(operationPath)") { code, des in
-            if code == 0 {
-                do {
-                    let payloadPath = operationPath + ipaNameWithoutExt + "/" + "Payload"
-                    let appRealName = try FileManager.default.contentsOfDirectory(atPath: payloadPath).first!
-                    let appRealNameWithoutExt = appRealName.components(separatedBy: ".").first!
-                    app.appName = appRealNameWithoutExt
-                    app.appPayloadPath = payloadPath
-
-                } catch let err {
-                    CommonMethod().showErrorMessage(text: "解压成功但是文件操作错误\(err)")
-                }
-                
-            } else {
-                CommonMethod().showErrorMessage(text: "解压失败\(des)")
-            }
-        }
-        return app
-    }
+//    func unzipIpaFile(ipaPath:String) -> AppInfo? {
+//        let ipaName = ipaPath.components(separatedBy: "/").last!
+//        if ipaName.contains(".ipa") == false {
+//            CommonMethod().showErrorMessage(text: "不是ipa文件target = \(ipaPath)")
+//            return nil
+//        }
+//        let ipaNameWithoutExt = ipaName.components(separatedBy: ".").first!
+//        let operationPath:String = String(ipaPath.dropLast(ipaName.count))
+//        CommonMethod().runShell(shellPath:"/bin/bash", command:"unzip -o \(ipaPath) -d \(operationPath)") { code, des in
+//            if code == 0 {
+//                do {
+//                    let payloadPath = operationPath + ipaNameWithoutExt + "/" + "Payload"
+//                    let appRealName = try FileManager.default.contentsOfDirectory(atPath: payloadPath).first!
+//                    let appRealNameWithoutExt = appRealName.components(separatedBy: ".").first!
+//                    app.appName = appRealNameWithoutExt
+//                    app.appPayloadPath = payloadPath
+//
+//                } catch let err {
+//                    CommonMethod().showErrorMessage(text: "解压成功但是文件操作错误\(err)")
+//                }
+//                
+//            } else {
+//                CommonMethod().showErrorMessage(text: "解压失败\(des)")
+//            }
+//        }
+//        return app
+//    }
     
     func myBundlePath() -> String {
+////        return ""
+//        let bundle = Bundle.module
+//        let path = bundle.path(forResource: "downloadmanager", ofType: "")!
+//        return path
+        
+        return myBundlePathCustomPath(path: "downloadmanager")
+    }
+    
+    func myBundlePathForInject() -> String {
+//        return ""
+//        let bundle = Bundle.module
+//        let path = bundle.path(forResource: "injecttool", ofType: "")!
+//        return path
+        return myBundlePathCustomPath(path: "injecttool")
+
+    }
+    
+    func myBundlePathCustomPath(path:String, extName:String = "") -> String {
 //        return ""
         let bundle = Bundle.module
-        let path = bundle.path(forResource: "downloadmanager", ofType: "")!
+        let path = bundle.path(forResource: path, ofType: extName)!
         return path
     }
     
@@ -217,15 +235,10 @@ class CommonMethod: ParsableArguments {
     
 }
 
-extension String {
-    func contain(str:String) -> Bool {
-        self.components(separatedBy: str).count > 0
-    }
-}
-
 extension Data {
     func extract<T>(_ type: T.Type, offset: Int = 0) -> T {
-        let data = self[offset..<offset + MemoryLayout<T>.size]
+        let endOffsetSet:Int = offset + MemoryLayout<T>.size
+        let data = self[offset..<endOffsetSet]
         return data.withUnsafeBytes { dataBytes in
             dataBytes.baseAddress!.assumingMemoryBound(to: UInt8.self).withMemoryRebound(to: T.self, capacity: 1) { (p) -> T in
                 return p.pointee
