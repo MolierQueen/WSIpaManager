@@ -24,7 +24,7 @@ class Uninject: ParsableCommand {
     var targetPath: String = ""
 
     func run() {
-        
+        Configenv().run()
         if FileManager.default.fileExists(atPath: targetPath) == false ||
             dylibName.count == 0 {
             CommonMethod().showErrorMessage(text: "路径错误dylibName = \(dylibName) target = \(targetPath)")

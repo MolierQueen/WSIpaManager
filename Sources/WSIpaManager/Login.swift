@@ -28,7 +28,7 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
     var passWord = ""
     
     func run() {
-        
+        Configenv().run()
         if userName.count <= 0 {
             CommonMethod().showErrorMessage(text: "需要输入用户名")
             Login.exit()
@@ -218,13 +218,15 @@ class Login: NSObject, ParsableCommand, XMLParserDelegate {
         //                    fflush(__stdoutp)
         //                }
         CommonMethod().showCommonMessage(text: "开始进行最终登录...")
-        CommonMethod().runShell(shellPath: CommonMethod().myBundlePath(), command: "auth login -g \(CommonMethod().guid()) -e \(userName) -p\(passWord)") { code, desc in
+        CommonMethod().runShell(shellPath: "/usr/local/bin/downloadmanager", command: "auth login -g \(CommonMethod().guid()) -e \(userName) -p \(passWord)") { code, desc in
             if code == 0 {
                 let dsid = CommonMethod().getXmlDic()["dsid"] ?? EMPTY_VALUE
                 let firstName = CommonMethod().getXmlDic()["firstName"] ?? ""
                 let lastName = CommonMethod().getXmlDic()["lastName"] ?? ""
                 let appleId = CommonMethod().getXmlDic()["appleId"] ?? ""
                 CommonMethod().showSuccessMessage(text: "登录成功\n授权ID = \(dsid)\nappleid = \(appleId)\nfirstName = \(firstName)\nlastName = \(lastName)")
+            } else {
+                CommonMethod().showSuccessMessage(text: "登录成功失败")
             }
         }
 //        return

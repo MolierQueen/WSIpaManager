@@ -20,6 +20,12 @@ class Generateproj: ParsableCommand {
     
     
     func run() -> Void {
+        
+        if CommonMethod().checkEnvConfig() == false {
+            CommonMethod().showErrorMessage(text: "请先使用 configenv 配置环境")
+            Generateproj.exit()
+        }
+        
         if iPAPath.count == 0 {
             CommonMethod().showErrorMessage(text: "ipa路径不能为空")
             return

@@ -16,70 +16,85 @@ class Configenv: ParsableCommand {
     
     public func run() {
         
+        
+        if CommonMethod().checkEnvConfig() {
+            CommonMethod().showSuccessMessage(text: "环境配检测完成，继续任务")
+        } else {
+            let gitUrl = "https://github.com/MolierQueen/TmpDepency.git"
+            CommonMethod().showCommonMessage(text: "开始按需配置环境...")
+            let uid = getuid()
+            if uid != 0 {
+                CommonMethod().showErrorMessage(text: "要使用sudo权限执行")
+                Configenv.exit()
+            }
+            CommonMethod().runShell(shellPath: "/bin/bash", command: "git clone \(gitUrl)") { code, desc in
+                if code == 0 {
+                    copyDepencyFileForTool()
+                    copyDepencyFileForHookProj()
+                    do {
+                        try FileManager.default.removeItem(atPath: "\(FileManager.default.currentDirectoryPath)/TmpDepency")
+                    } catch let err {
+                        CommonMethod().showErrorMessage(text: "删除临时文件失败:\(err)")
+                    }
+                    CommonMethod().showSuccessMessage(text: "环境配置完成")
 
-        let gitUrl = "https://github.com/MolierQueen/TmpDepency.git"
-        CommonMethod().showCommonMessage(text: "开始配置...")
-        CommonMethod().runShell(shellPath: "/bin/bash", command: "git clone \(gitUrl)") { code, desc in
-            if code == 0 {
-                let downloadmanagerPath = "/usr/local/bin/"
-                let injecttoolPath = "/usr/local/bin/"
-                let downloadSource = FileManager.default.currentDirectoryPath+"/TmpDepency/downloadmanager"
-                let injectSource = FileManager.default.currentDirectoryPath+"/TmpDepency/injecttool"
-                fileCopyIfNeed(filePath: downloadSource, targetPath: downloadmanagerPath)
-                fileCopyIfNeed(filePath: injectSource, targetPath: injecttoolPath)
-                
-                copyDepencyFile()
-                
-                do {
-                    try FileManager.default.removeItem(atPath: "\(FileManager.default.currentDirectoryPath)/TmpDepency")
-                } catch let err {
-                    CommonMethod().showErrorMessage(text: "删除临时文件失败:\(err)")
+                } else {
+                    CommonMethod().showErrorMessage(text: "拉取配置文件错误\(desc)")
+                    Configenv.exit()
                 }
-                
             }
         }
     }
     
-    func copyDepencyFile() -> Void {
+
+    
+    func copyDepencyFileForTool() -> Void {
+        let downloadSource = FileManager.default.currentDirectoryPath+"/TmpDepency/downloadmanager"
+        let injectSource = FileManager.default.currentDirectoryPath+"/TmpDepency/injecttool"
+        
+        fileCopyIfNeed(filePath: downloadSource, targetPath: downloadmanagerPath)
+        fileCopyIfNeed(filePath: injectSource, targetPath: injecttoolPath)
+    }
+    
+    func copyDepencyFileForHookProj() -> Void {
         let runtime_1 = FileManager.default.currentDirectoryPath+"/TmpDepency/libstdc++.6.0.9.dylib"
         let runtime_2 = FileManager.default.currentDirectoryPath+"/TmpDepency/libstdc++.6.dylib"
         let runtime_3 = FileManager.default.currentDirectoryPath+"/TmpDepency/libstdc++.dylib"
-        let runtimeTarget = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS.simruntime/Contents/Resources/RuntimeRoot/usr/lib/"
-        fileCopyIfNeed(filePath: runtime_3, targetPath: runtimeTarget)
-        fileCopyIfNeed(filePath: runtime_2, targetPath: runtimeTarget)
-        fileCopyIfNeed(filePath: runtime_1, targetPath: runtimeTarget)
+
+        fileCopyIfNeed(filePath: runtime_1, targetPath: runtimeTarget1)
+        fileCopyIfNeed(filePath: runtime_2, targetPath: runtimeTarget2)
+        fileCopyIfNeed(filePath: runtime_3, targetPath: runtimeTarget3)
         
         let SDK_1 = FileManager.default.currentDirectoryPath+"/TmpDepency/libstdc++.6.0.9.tbd"
         let SDK_2 = FileManager.default.currentDirectoryPath+"/TmpDepency/libstdc++.6.tbd"
         let SDK_3 = FileManager.default.currentDirectoryPath+"/TmpDepency/libstdc++.tbd"
-        let MACTarget = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/"
-        let iphoneTarget = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib/"
-        let simulatorTarget = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/usr/lib/"
-       fileCopyIfNeed(filePath: SDK_1, targetPath: MACTarget)
-       fileCopyIfNeed(filePath: SDK_2, targetPath: MACTarget)
-       fileCopyIfNeed(filePath: SDK_3, targetPath: MACTarget)
+
+       fileCopyIfNeed(filePath: SDK_1, targetPath: MACTarget1)
+       fileCopyIfNeed(filePath: SDK_2, targetPath: MACTarget2)
+       fileCopyIfNeed(filePath: SDK_3, targetPath: MACTarget3)
        
-       fileCopyIfNeed(filePath: SDK_1, targetPath: iphoneTarget)
-       fileCopyIfNeed(filePath: SDK_2, targetPath: iphoneTarget)
-       fileCopyIfNeed(filePath: SDK_3, targetPath: iphoneTarget)
+       fileCopyIfNeed(filePath: SDK_1, targetPath: iphoneTarget1)
+       fileCopyIfNeed(filePath: SDK_2, targetPath: iphoneTarget2)
+       fileCopyIfNeed(filePath: SDK_3, targetPath: iphoneTarget3)
        
-       fileCopyIfNeed(filePath: SDK_1, targetPath: simulatorTarget)
-       fileCopyIfNeed(filePath: SDK_2, targetPath: simulatorTarget)
-       fileCopyIfNeed(filePath: SDK_3, targetPath: simulatorTarget)
+       fileCopyIfNeed(filePath: SDK_1, targetPath: simulatorTarget1)
+       fileCopyIfNeed(filePath: SDK_2, targetPath: simulatorTarget2)
+       fileCopyIfNeed(filePath: SDK_3, targetPath: simulatorTarget3)
     }
     
     func fileCopyIfNeed(filePath:String, targetPath:String) -> Void {
-        let fileName = filePath.components(separatedBy: "/").last!
         do {
-            if !FileManager.default.fileExists(atPath: "\(targetPath)\(fileName)") {
-                try FileManager.default.copyItem(atPath:filePath, toPath: targetPath+fileName)
+            if !FileManager.default.fileExists(atPath: targetPath) {
+                try FileManager.default.copyItem(atPath:filePath, toPath: targetPath)
             } else {
-                CommonMethod().showWarningMessage(text: "文件已存在 = \(targetPath)/\(fileName)")
+                CommonMethod().showWarningMessage(text: "文件已存在 = \(targetPath)")
             }
         } catch let err {
-            CommonMethod().showErrorMessage(text: "配置依赖失败 = \(targetPath)/\(fileName) error = \(err)")
-            Generateproj.exit()
+            do {
+                try FileManager.default.removeItem(atPath: "\(FileManager.default.currentDirectoryPath)/TmpDepency")
+            } catch {}
+            CommonMethod().showErrorMessage(text: "配置依赖失败 = \(targetPath) error = \(err)")
+            Configenv.exit()
         }
     }
-    
 }

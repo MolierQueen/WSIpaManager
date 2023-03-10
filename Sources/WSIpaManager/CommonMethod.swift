@@ -31,6 +31,27 @@ let DYLIB_EXECUTABLE_PATH = "@executable_path/\(DYLIB_PATH)/"
 
 let EMPTY_VALUE = "placeholder"
 
+let downloadmanagerPath = "/usr/local/bin/downloadmanager"
+let injecttoolPath = "/usr/local/bin/injecttool"
+
+/********************* 一些常用路径  **********/
+let runtimeTarget1 = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS.simruntime/Contents/Resources/RuntimeRoot/usr/lib/libstdc++.6.0.9.dylib"
+let runtimeTarget2 = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS.simruntime/Contents/Resources/RuntimeRoot/usr/lib/libstdc++.6.dylib"
+let runtimeTarget3 = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS.simruntime/Contents/Resources/RuntimeRoot/usr/lib/libstdc++.dylib"
+
+let MACTarget1 = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libstdc++.6.0.9.tbd"
+let MACTarget2 = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libstdc++.6.tbd"
+let MACTarget3 = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libstdc++.tbd"
+
+let iphoneTarget1 = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib/libstdc++.6.0.9.tbd"
+let iphoneTarget2 = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib/libstdc++.6.tbd"
+let iphoneTarget3 = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib/libstdc++.tbd"
+
+let simulatorTarget1 = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/usr/lib/libstdc++.6.0.9.tbd"
+let simulatorTarget2 = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/usr/lib/libstdc++.6.tbd"
+let simulatorTarget3 = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/usr/lib/libstdc++.tbd"
+/***************************************************/
+
 class AppInfo {
     var appName:String = ""
     var appBundleID:String = ""
@@ -125,8 +146,26 @@ class CommonMethod: ParsableArguments {
         return xmlDic
     }
     
+    func checkEnvConfig() -> Bool {
+        
+        if FileManager.default.fileExists(atPath: downloadmanagerPath) &&
+            FileManager.default.fileExists(atPath: injecttoolPath) &&
+            FileManager.default.fileExists(atPath: runtimeTarget1) &&
+            FileManager.default.fileExists(atPath: runtimeTarget2) &&
+            FileManager.default.fileExists(atPath: runtimeTarget3) &&
+            FileManager.default.fileExists(atPath: MACTarget1) &&
+            FileManager.default.fileExists(atPath: MACTarget2) &&
+            FileManager.default.fileExists(atPath: MACTarget3) &&
+            FileManager.default.fileExists(atPath: iphoneTarget1) &&
+            FileManager.default.fileExists(atPath: iphoneTarget2) &&
+            FileManager.default.fileExists(atPath: iphoneTarget3) {
+            return true
+        }
+        return false
+    }
+    
     //    执行shell脚本
-    func runShell(shellPath:String, command: String, handle:(Int32, String)->()) {
+    func runShell(shellPath:String, command: String, needWait:Bool = true, handle:(Int32, String)->()) {
         let task = Process()
         task.launchPath = shellPath
         if shellPath == "/bin/bash" {
@@ -140,7 +179,9 @@ class CommonMethod: ParsableArguments {
         task.standardError = pipe
         task.launch()
         
-        task.waitUntilExit()
+        if needWait {
+            task.waitUntilExit()
+        }
         let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: String.Encoding.utf8)
         handle(task.terminationStatus, output ?? "")
     }
@@ -173,30 +214,30 @@ class CommonMethod: ParsableArguments {
 //        return app
 //    }
     
-    func myBundlePath() -> String {
+//    func myBundlePath() -> String {
+//////        return ""
+////        let bundle = Bundle.module
+////        let path = bundle.path(forResource: "downloadmanager", ofType: "")!
+////        return path
+//        
+//        return myBundlePathCustomPath(path: "downloadmanager")
+//    }
+//    
+//    func myBundlePathForInject() -> String {
 ////        return ""
-//        let bundle = Bundle.module
-//        let path = bundle.path(forResource: "downloadmanager", ofType: "")!
-//        return path
-        
-        return myBundlePathCustomPath(path: "downloadmanager")
-    }
-    
-    func myBundlePathForInject() -> String {
+////        let bundle = Bundle.module
+////        let path = bundle.path(forResource: "injecttool", ofType: "")!
+////        return path
+//        return myBundlePathCustomPath(path: "injecttool")
+//
+//    }
+//    
+//    func myBundlePathCustomPath(path:String, extName:String = "") -> String {
 //        return ""
-//        let bundle = Bundle.module
-//        let path = bundle.path(forResource: "injecttool", ofType: "")!
-//        return path
-        return myBundlePathCustomPath(path: "injecttool")
-
-    }
-    
-    func myBundlePathCustomPath(path:String, extName:String = "") -> String {
-//        return ""
-        let bundle = Bundle.module
-        let path = bundle.path(forResource: path, ofType: extName)!
-        return path
-    }
+////        let bundle = Bundle.module
+////        let path = bundle.path(forResource: path, ofType: extName)!
+////        return path
+//    }
     
     func writeFile(newBinary: Data?, machoPath: String, isRemove:Bool) -> Bool {
         if let b = newBinary {

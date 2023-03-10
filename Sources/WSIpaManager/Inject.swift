@@ -26,10 +26,11 @@ class Inject: ParsableCommand {
     var force: Bool = false
 
      func run() {
+         Configenv().run()
          if force {
              CommonMethod().showCommonMessage(text: "开始进行强制注入...")
              let command = "install -c load -p \(sourcePath) -t \(targetPath)"
-             CommonMethod().runShell(shellPath: CommonMethod().myBundlePathForInject(), command: command) { code, desc in
+             CommonMethod().runShell(shellPath: "/usr/local/bin/injecttool", command: command) { code, desc in
                  if code == 0 {
                      CommonMethod().showSuccessMessage(text: "已经使用WSIpaManager注入成功...")
                  }
@@ -74,58 +75,75 @@ class Inject: ParsableCommand {
             finishHandle(false)
         }
         CommonMethod().showCommonMessage(text: "入参检查完毕，准备动态库注入，开始解压ipa...")
-        CommonMethod().runShell(shellPath:"/bin/bash", command:"unzip -o \(ipaPath) -d \(operationPath)") { code, des in
+        var zipMark = false
+    
+        CommonMethod().runShell(shellPath:"/bin/bash", command:"unzip -o \(ipaPath) -d \(operationPath)",needWait: false) { code, des in
             //            解压后取出app文件和macho文件的路径
             if code == 0 {
-                CommonMethod().showCommonMessage(text: "解压ipa成功，开始注入...")
-                var appNmae = ""
-                let payload = operationPath+"Payload"
-                do {
-                    let fileList = try FileManager.default.contentsOfDirectory(atPath: payload)
-                    var machoPath = ""
-                    var appPath = ""
-                    for item in fileList {
-                        if item.hasSuffix(".app") {
-                            appNmae = item.components(separatedBy: ".").first!
-                            appPath = payload + "/\(item)"
-                            machoPath = appPath+"/\(appNmae)"
-                            break
-                        }
+                zipMark = true
+            } else {
+                CommonMethod().showErrorMessage(text: "解压失败\(des)")
+                return
+            }
+        }
+        
+        if zipMark {
+            CommonMethod().showCommonMessage(text: "解压ipa成功，开始注入...")
+            var appNmae = ""
+            let payload = operationPath+"Payload"
+            do {
+                let fileList = try FileManager.default.contentsOfDirectory(atPath: payload)
+                var machoPath = ""
+                var appPath = ""
+                for item in fileList {
+                    if item.hasSuffix(".app") {
+                        appNmae = item.components(separatedBy: ".").first!
+                        appPath = payload + "/\(item)"
+                        machoPath = appPath+"/\(appNmae)"
+                        break
                     }
-                    
-                    if FileManager.default.fileExists(atPath: "\(appPath)/\(DYLIB_PATH)/") == false {
-                        //                    创建一个文件夹
-                        try FileManager.default.createDirectory(atPath: "\(appPath)/\(DYLIB_PATH)/", withIntermediateDirectories: true, attributes: nil)
-                    }
-                    try FileManager.default.copyItem(atPath: injectPath, toPath: "\(appPath)/\(DYLIB_PATH)/\(frameworkNameWithExt)")
-                    
-                    //                    把要注入的动态库放进去
-//                    try FileManager.default.moveItem(atPath: injectPath, toPath: "\(appPath)/\(DYLIB_PATH)/\(frameworkNameWithExt)")
-                    
-                    //                    开始注入
-                    injectMachO(machoPath: machoPath, backup: false, injectPath: injectPathName) { success in
-                        if success {
-                            CommonMethod().showCommonMessage(text: "注入成功，开始将产物打包成ipa...")
-                            //                            注入完成后压缩打包成ipa
-                            let newAppPath = operationPath + appNmae + "_injected.ipa"
-                            CommonMethod().runShell(shellPath:"/bin/bash", command:"cd \(operationPath); zip -r \(newAppPath) Payload") { code, desc in
-                                if code == 0 {
-                                    CommonMethod().showSuccessMessage(text: "任务完成，新ipa = \(newAppPath)")
-                                    result = true
-                                } else {
-                                    CommonMethod().showErrorMessage(text: "打包ipa失败\(des)")
-                                }
+                }
+                
+                if FileManager.default.fileExists(atPath: "\(appPath)/\(DYLIB_PATH)/") == false {
+                    //                    创建一个文件夹
+                    try FileManager.default.createDirectory(atPath: "\(appPath)/\(DYLIB_PATH)/", withIntermediateDirectories: true, attributes: nil)
+                }
+                try FileManager.default.copyItem(atPath: injectPath, toPath: "\(appPath)/\(DYLIB_PATH)/\(frameworkNameWithExt)")
+                
+                //                    把要注入的动态库放进去
+                //                    try FileManager.default.moveItem(atPath: injectPath, toPath: "\(appPath)/\(DYLIB_PATH)/\(frameworkNameWithExt)")
+                
+                //                    开始注入
+                injectMachO(machoPath: machoPath, backup: false, injectPath: injectPathName) { success in
+                    if success {
+                        CommonMethod().showCommonMessage(text: "注入成功，开始将产物打包成ipa...")
+                        //                            注入完成后压缩打包成ipa
+                        let newAppPath = operationPath + appNmae + "_injected.ipa"
+                        CommonMethod().runShell(shellPath:"/bin/bash", command:"cd \(operationPath); zip -r \(newAppPath) Payload", needWait: false) { code, desc in
+                            if code == 0 {
+                                CommonMethod().showSuccessMessage(text: "任务完成，新ipa = \(newAppPath)")
+                                result = true
+                            } else {
+                                CommonMethod().showErrorMessage(text: "打包ipa失败\(desc)")
                             }
                         }
                     }
-                    try FileManager.default.removeItem(atPath: payload)
-                } catch let err {
-                    CommonMethod().showErrorMessage(text: "解压成功但是文件操作错误\(err)")
                 }
-            } else {
-                CommonMethod().showErrorMessage(text: "解压失败\(des)")
+                try FileManager.default.removeItem(atPath: payload)
+            } catch let err {
+                CommonMethod().showErrorMessage(text: "解压成功但是文件操作错误\(err)")
             }
         }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         finishHandle(result)
     }
     

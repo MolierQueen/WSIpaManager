@@ -23,6 +23,7 @@ class Download: NSObject, ParsableCommand, XMLParserDelegate {
     
     
     func run() {
+        Configenv().run()
         getDownloadUrl()
         downloadipaWith(urlStr: "download","-b", self.bundle)
     }
@@ -118,8 +119,9 @@ class Download: NSObject, ParsableCommand, XMLParserDelegate {
 //            print("+++\(desc)")
 //            return
 //        }
+        print("1111 == \(urlStr)")
         let task = Process()
-        task.launchPath = CommonMethod().myBundlePath()
+        task.launchPath = "/usr/local/bin/downloadmanager"
         task.arguments = urlStr
         task.launch()
         task.waitUntilExit()

@@ -20,9 +20,9 @@ let package = Package(
             ],
             resources:[
                 //                .copy("downloadmanager"),
-                .process("downloadmanager"),
-                .process("injecttool"),
-                .process("dependency"),
+//                .process("downloadmanager"),
+//                .process("injecttool"),
+//                .process("dependency"),
             ]
         ),
         
