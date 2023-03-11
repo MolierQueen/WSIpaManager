@@ -46,7 +46,7 @@ class Resign: ParsableCommand {
         let operationPath:String = String(inputIPAPath.dropLast(ipaName.count))
         
         // 解压 IPA 文件
-        CommonMethod().runShell(shellPath:"/bin/bash", command:"unzip -o \(inputIPAPath) -d \(operationPath)") { code, des in
+        CommonMethod().runShell(shellPath:"/bin/bash", command:"unzip -o \(inputIPAPath) -d \(operationPath)", needWait: false) { code, des in
             if code == 0 {
                 CommonMethod().showCommonMessage(text: "解压ipa成功，开始重签...")
                 var appNmae = ""
@@ -82,7 +82,7 @@ class Resign: ParsableCommand {
                                     
                                     let newAppPath = operationPath + appNmae + "_resigned.ipa"
 
-                                    CommonMethod().runShell(shellPath: "/bin/bash", command: "cd \(operationPath); zip -qr \(newAppPath) Payload ") { code, desc in
+                                    CommonMethod().runShell(shellPath: "/bin/bash", command: "cd \(operationPath); zip -qr \(newAppPath) Payload ", needWait: false) { code, desc in
                                         if code == 0 {
                                             CommonMethod().showSuccessMessage(text: "生成新包成功")
                                         }
