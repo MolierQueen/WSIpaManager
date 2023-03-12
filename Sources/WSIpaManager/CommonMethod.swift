@@ -33,6 +33,7 @@ let EMPTY_VALUE = "placeholder"
 
 let downloadmanagerPath = "/usr/local/bin/downloadmanager"
 let injecttoolPath = "/usr/local/bin/injecttool"
+let getheaderPath = "/usr/local/bin/getheader"
 
 /********************* 一些常用路径  **********/
 let runtimeTarget1 = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS.simruntime/Contents/Resources/RuntimeRoot/usr/lib/libstdc++.6.0.9.dylib"
@@ -158,7 +159,9 @@ class CommonMethod: ParsableArguments {
             FileManager.default.fileExists(atPath: MACTarget3) &&
             FileManager.default.fileExists(atPath: iphoneTarget1) &&
             FileManager.default.fileExists(atPath: iphoneTarget2) &&
-            FileManager.default.fileExists(atPath: iphoneTarget3) {
+            FileManager.default.fileExists(atPath: iphoneTarget3) &&
+            FileManager.default.fileExists(atPath: getheaderPath)
+        {
             return true
         }
         return false

@@ -17,7 +17,8 @@ class Uninstall: ParsableCommand {
     public func run() {
         uninstallEnv(filePath: downloadmanagerPath)
         uninstallEnv(filePath: injecttoolPath)
-        
+        uninstallEnv(filePath: getheaderPath)
+
         uninstallEnv(filePath: runtimeTarget1)
         uninstallEnv(filePath: runtimeTarget2)
         uninstallEnv(filePath: runtimeTarget3)

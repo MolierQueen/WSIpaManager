@@ -51,9 +51,11 @@ class Configenv: ParsableCommand {
     func copyDepencyFileForTool() -> Void {
         let downloadSource = FileManager.default.currentDirectoryPath+"/TmpDepency/downloadmanager"
         let injectSource = FileManager.default.currentDirectoryPath+"/TmpDepency/injecttool"
-        
+        let getheaderSource = FileManager.default.currentDirectoryPath+"/TmpDepency/getheader"
+
         fileCopyIfNeed(filePath: downloadSource, targetPath: downloadmanagerPath)
         fileCopyIfNeed(filePath: injectSource, targetPath: injecttoolPath)
+        fileCopyIfNeed(filePath: getheaderSource, targetPath: getheaderPath)
     }
     
     func copyDepencyFileForHookProj() -> Void {

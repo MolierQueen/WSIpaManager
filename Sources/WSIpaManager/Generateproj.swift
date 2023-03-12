@@ -23,7 +23,7 @@ class Generateproj: ParsableCommand {
         
         if CommonMethod().checkEnvConfig() == false {
             CommonMethod().showErrorMessage(text: "请先使用 configenv 配置环境")
-            Generateproj.exit()
+            return
         }
         
         if iPAPath.count == 0 {

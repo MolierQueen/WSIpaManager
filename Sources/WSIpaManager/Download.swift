@@ -119,7 +119,6 @@ class Download: NSObject, ParsableCommand, XMLParserDelegate {
 //            print("+++\(desc)")
 //            return
 //        }
-        print("1111 == \(urlStr)")
         let task = Process()
         task.launchPath = "/usr/local/bin/downloadmanager"
         task.arguments = urlStr

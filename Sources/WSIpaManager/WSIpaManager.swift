@@ -17,7 +17,8 @@ class wsipamanager: ParsableCommand {
                           Resign.self,
                           Generateproj.self,
                           Configenv.self,
-                          Uninstall.self])
+                          Uninstall.self,
+                          Getheader.self])
     
      public func run() {
          if CommandLine.arguments.count <= 1 {
