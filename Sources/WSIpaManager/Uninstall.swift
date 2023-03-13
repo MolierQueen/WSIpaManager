@@ -15,6 +15,10 @@ class Uninstall: ParsableCommand {
     static var configuration = CommandConfiguration(abstract: "一键删除环境")
     
     public func run() {
+        if !CommonMethod().isSudo() {
+            CommonMethod().showErrorMessage(text: "要使用sudo权限执行")
+            return
+        }
         uninstallEnv(filePath: downloadmanagerPath)
         uninstallEnv(filePath: injecttoolPath)
         uninstallEnv(filePath: getheaderPath)

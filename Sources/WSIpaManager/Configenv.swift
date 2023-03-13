@@ -9,6 +9,8 @@ import ArgumentParser
 import Foundation
 
 class Configenv: ParsableCommand {
+    
+    var count = 0.0
 
     required init() {
     }
@@ -22,11 +24,12 @@ class Configenv: ParsableCommand {
         } else {
             let gitUrl = "https://github.com/MolierQueen/TmpDepency.git"
             CommonMethod().showCommonMessage(text: "开始按需配置环境...")
-            let uid = getuid()
-            if uid != 0 {
+            
+            if !CommonMethod().isSudo() {
                 CommonMethod().showErrorMessage(text: "要使用sudo权限执行")
-                Configenv.exit()
+                return
             }
+
             CommonMethod().runShell(shellPath: "/bin/bash", command: "git clone \(gitUrl)") { code, desc in
                 if code == 0 {
                     copyDepencyFileForTool()
@@ -85,6 +88,12 @@ class Configenv: ParsableCommand {
     }
     
     func fileCopyIfNeed(filePath:String, targetPath:String) -> Void {
+//        count += 1.0
+//        print("pr -- \(count)")
+//        let precent:Double = count / 15.0*100
+//        //            打印进度
+//        print( "\u{1B}[1A\u{1B}[KDownloaded:我是\(precent)% ")
+//        fflush(__stdoutp)
         do {
             if !FileManager.default.fileExists(atPath: targetPath) {
                 try FileManager.default.copyItem(atPath:filePath, toPath: targetPath)

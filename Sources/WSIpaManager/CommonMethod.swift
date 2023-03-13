@@ -189,6 +189,15 @@ class CommonMethod: ParsableArguments {
         handle(task.terminationStatus, output ?? "")
     }
     
+    func isSudo() -> Bool {
+        let uid = getuid()
+        if uid != 0 {
+            return false
+        }
+        return true
+    }
+    
+    
 //    func unzipIpaFile(ipaPath:String) -> AppInfo? {
 //        let ipaName = ipaPath.components(separatedBy: "/").last!
 //        if ipaName.contains(".ipa") == false {
