@@ -43,6 +43,13 @@ class Generateproj: ParsableCommand {
         CommonMethod().showCommonMessage(text: "开始生成工程...")
         CommonMethod().runShell(shellPath: "/bin/bash", command: "git clone \(gitUrl)") { code, desc in
             if code == 0 {
+                let gitSourct = "\(FileManager.default.currentDirectoryPath)/WSIpaHookTool/.git"
+                let gitignoreSourct = "\(FileManager.default.currentDirectoryPath)/WSIpaHookTool/.gitignore"
+                do {
+                    try FileManager.default.removeItem(atPath: gitSourct)
+                    try FileManager.default.removeItem(atPath: gitignoreSourct)
+                } catch {}
+                
                 let tar = "\(FileManager.default.currentDirectoryPath)/WSIpaHookTool/WSIpaHookTool/TargetApp/target.ipa"
                 do {
                     CommonMethod().showCommonMessage(text: "开始拷贝ipa...")
